@@ -1,0 +1,13 @@
+class ProcessController < ApplicationController
+  layout false
+
+  def index
+    if params.keys.include? 'force'
+      Lock.delete_all
+    end
+    Lock.loop do
+      Page.grab_content(1)
+    end
+    render :text => ''
+  end
+end

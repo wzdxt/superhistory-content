@@ -1,0 +1,15 @@
+default: &default
+
+development:
+  <<: *default
+  http_triggers:
+    self: http://localhost:3000/
+
+test:
+  <<: *default
+
+production:
+  <<: *default
+  http_triggers:
+    self: http://x-history-content.vdtapp.com/
+
