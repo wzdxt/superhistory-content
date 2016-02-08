@@ -1,14 +1,13 @@
 class Content < ActiveRecord::Base
   UTF8 = 'utf-8'
 
-  def grab!(url)
+  def grab!
     begin
       client = HTTPClient.new
       client.connect_timeout = client.send_timeout = client.receive_timeout = 3
-      res = client.get url
+      res = client.get self.url
       readability_doc = Readability::Document.new(res.body)
       self.source = readability_doc.html.to_s.encode UTF8
-      self.url = url
       self.title = readability_doc.title
       self.cache = readability_doc.content.encode UTF8
       self.search_content = Readability::Document.new(self.cache).html.text
@@ -19,13 +18,13 @@ class Content < ActiveRecord::Base
                                 .strip
       self.save!
     rescue HTTPClient::ReceiveTimeoutError, HTTPClient::ConnectTimeoutError => e
-      puts e.backtrace
-      return false
+      puts e.class, e.backtrace
+      return [false, Page::STATUS::ERROR_ON_OPEN]
     rescue => e
-      puts e.backtrace
-      return false
+      puts e.class, e.backtrace
+      return [false, Page::STATUS::ERROR_OTHER]
     end
-    true
+    return [true, Page::STATUS::PROCESSED]
   end
 
 end
