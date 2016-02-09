@@ -19,7 +19,7 @@ class Content < ActiveRecord::Base
                                 .gsub(/(?<=\p{Word})\s+(?=\P{Word})/, '') # 删除文字后空格
                                 .strip
       self.save!
-    rescue HTTPClient::ReceiveTimeoutError, HTTPClient::ConnectTimeoutError => e
+    rescue HTTPClient::ReceiveTimeoutError, HTTPClient::ConnectTimeoutError, HTTPClient::SendTimeoutError => e
       puts e.class, e.backtrace
       return [false, Page::STATUS::ERROR_ON_OPEN]
     rescue => e
