@@ -11,16 +11,16 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20160205021531) do
+ActiveRecord::Schema.define(version: 20160209170632) do
 
   create_table "contents", force: :cascade do |t|
-    t.text     "source"
+    t.text     "source",         limit: 16777215
     t.string   "url",            limit: 1000
     t.string   "title"
     t.text     "cache"
     t.text     "search_content"
-    t.datetime "created_at",                  null: false
-    t.datetime "updated_at",                  null: false
+    t.datetime "created_at",                      null: false
+    t.datetime "updated_at",                      null: false
   end
 
   create_table "locks", force: :cascade do |t|
