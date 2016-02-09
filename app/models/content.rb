@@ -1,6 +1,12 @@
 class Content < ActiveRecord::Base
   content = Content.arel_table
   scope :contains_localhost, -> {where content[:url].matches('%://localhost/%').or content[:url].matches('%://localhost:%')}
+
+  module FETCH_ERROR
+    PROCESSED = 20
+    ERROR_ON_OPEN = 40
+    ERROR_OTHER = 50
+  end
   UTF8 = 'utf-8'
 
   def grab!
@@ -21,10 +27,10 @@ class Content < ActiveRecord::Base
       self.save!
     rescue HTTPClient::ReceiveTimeoutError, HTTPClient::ConnectTimeoutError, HTTPClient::SendTimeoutError => e
       puts e.class, e.backtrace
-      return [false, Page::STATUS::ERROR_ON_OPEN]
+      return [false, FETCH_ERROR::ERROR_ON_OPEN]
     rescue => e
       puts e.class, e.backtrace
-      return [false, Page::STATUS::ERROR_OTHER]
+      return [false, FETCH_ERROR::ERROR_OTHER]
     end
     return [true, Page::STATUS::PROCESSED]
   end

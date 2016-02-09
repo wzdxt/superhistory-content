@@ -6,10 +6,10 @@ class Page < ActiveRecord::Base
   scope :has_content_version, -> {where page[:content_version].not_eq(nil)}
   module STATUS
     NOT_PROCESSED = 10
-    PROCESSED = 20
+    PROCESSED = Content::FETCH_ERROR::PROCESSED
     REDIRECT = 30
-    ERROR_ON_OPEN = 40
-    ERROR_OTHER = 50
+    ERROR_ON_OPEN = Content::FETCH_ERROR::ERROR_ON_OPEN
+    ERROR_OTHER = Content::FETCH_ERROR::ERROR_OTHER
   end
 
   def grab_content(version = nil)
