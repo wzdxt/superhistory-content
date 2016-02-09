@@ -1,4 +1,6 @@
 class Content < ActiveRecord::Base
+  content = Content.arel_table
+  scope :contains_localhost, -> {where content[:url].matches('%://localhost/%').or content[:url].matches('%://localhost:%')}
   UTF8 = 'utf-8'
 
   def grab!
@@ -27,4 +29,7 @@ class Content < ActiveRecord::Base
     return [true, Page::STATUS::PROCESSED]
   end
 
+  def self.remove_existed_local
+    self.contains_localhost.delete_all
+  end
 end

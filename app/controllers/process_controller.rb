@@ -6,6 +6,7 @@ class ProcessController < ApplicationController
       Lock.delete_all
     end
     Lock.loop do
+      # Content.remove_existed_local
       Page.grab_content(1)
     end
     render :text => ''
