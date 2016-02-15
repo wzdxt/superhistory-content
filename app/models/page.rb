@@ -22,7 +22,6 @@ class Page < ActiveRecord::Base
   end
 
   def self.grab_content(version)
-    self.has_content_version.update_all(:status => STATUS::PROCESSED)
     self.under_version(version).not_redirect.each{|p|p.grab_content version}
   end
 end
