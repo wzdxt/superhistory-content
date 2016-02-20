@@ -17,7 +17,8 @@ class Content < ActiveRecord::Base
       readability_doc = Readability::Document.new(res.body)
       self.source = readability_doc.html.to_s.encode UTF8
       self.title = readability_doc.title
-      self.cache = readability_doc.content.encode UTF8
+      # self.cache = readability_doc.content.encode UTF8
+      self.cache = self.source
       self.search_content = Readability::Document.new(self.cache).html.text
                                 .gsub(/\s+/, ' ')
                                 .gsub(/[^\p{Word}|\p{P}|\p{S}|\s]+/, '') # 只保留中英文字,标点,符号和空格
