@@ -7,7 +7,7 @@ class ProcessController < ApplicationController
     end
     Lock.loop do
       # Content.remove_existed_local
-      Page.grab_content(1)
+      Page.grab_content(2)
     end
     render :text => ''
   end

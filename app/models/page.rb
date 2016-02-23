@@ -15,6 +15,8 @@ class Page < ActiveRecord::Base
     SAME_CONTENT_HASH = 120
   end
 
+  include StatusFeature
+
   def grab_content(version = nil)
     content = Content.find_or_create_by(:id => self.id)
     content.update! :url => self.url
@@ -28,6 +30,7 @@ class Page < ActiveRecord::Base
       self.status = r[1]
     end
     self.save!
+    content.delete unless self.SUCCESS?
   end
 
   def self.grab_content(version)
