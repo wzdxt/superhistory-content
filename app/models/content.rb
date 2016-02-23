@@ -9,7 +9,7 @@ class Content < ActiveRecord::Base
   end
   UTF8 = 'utf-8'
 
-  def grab!
+  def grab
     begin
       client = HTTPClient.new
       client.connect_timeout = client.send_timeout = client.receive_timeout = 3
@@ -33,7 +33,7 @@ class Content < ActiveRecord::Base
       puts e.class, e.backtrace
       return [false, FETCH_ERROR::ERROR_OTHER]
     end
-    return [true, Page::STATUS::PROCESSED]
+    return [true, Page::STATUS::SUCCESS]
   end
 
   def self.remove_existed_local
