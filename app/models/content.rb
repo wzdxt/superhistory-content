@@ -39,4 +39,8 @@ class Content < ActiveRecord::Base
   def self.remove_existed_local
     self.contains_localhost.delete_all
   end
+
+  def self.reset_table
+    self.delete_all
+  end
 end

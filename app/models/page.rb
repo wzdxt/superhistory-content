@@ -10,6 +10,7 @@ class Page < ActiveRecord::Base
     REDIRECT = 30
     ERROR_ON_OPEN = Content::FETCH_ERROR::ERROR_ON_OPEN
     ERROR_OTHER = Content::FETCH_ERROR::ERROR_OTHER
+    HTTP_STATUS_NOT_200 = 110
   end
 
   def grab_content(version = nil)
