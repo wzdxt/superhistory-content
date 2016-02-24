@@ -4,7 +4,10 @@ class Page < ActiveRecord::Base
   scope :under_version, ->(v) { where(page[:content_version].eq(nil).or(page[:content_version].lt(v))) }
   scope :not_redirect, -> { where page[:status].not_eq(STATUS::REDIRECT) }
   scope :has_content_version, -> { where page[:content_version].not_eq(nil) }
-  scope :find_success_by_content_hash, ->(content_hash) { where(page[:content_hash].eq(content_hash).and(page[:status].eq(STATUS::SUCCESS)))}
+  scope :version, -> (v) {where(page[:content_version].eq(v))}
+  scope :content_hash, ->(content_hash) { where(page[:content_hash].eq(content_hash).and(page[:status].eq(STATUS::SUCCESS))) }
+  scope :status_success, -> { where(page[:status].eq(STATUS::SUCCESS))}
+  scope :not_self, ->(self_id) {where(page[:id].not_eq(self_id))}
   module STATUS
     NOT_PROCESSED = 10
     SUCCESS = Content::FETCH_ERROR::PROCESSED
@@ -21,16 +24,17 @@ class Page < ActiveRecord::Base
     content = Content.find_or_create_by(:id => self.id)
     content.update! :url => self.url
     r = content.grab
-    if r[0]
-      self.content_hash = Digest::SHA512.hexdigest(content.search_content)
-      self.title = content.title
-    end
+    self.content_hash = Digest::SHA512.hexdigest(content.search_content) if r[0]
+    self.title = content.title
     self.content_version = version if version and r[0]
-    if (target = Page.find_success_by_content_hash(self.content_hash).first).present?
-      self.target_page_id = target.id
-      self.status = STATUS::SAME_CONTENT_HASH
-    else
-      self.status = r[1]
+    if version.present?
+      if (target = Page.version(version).content_hash(self.content_hash).status_success.not_self(self.id).first).present?
+        self.target_page_id = target.id
+        self.status = STATUS::SAME_CONTENT_HASH
+      else
+        self.target_page_id = nil
+        self.status = r[1]
+      end
     end
     self.save!
     content.delete unless self.SUCCESS?
