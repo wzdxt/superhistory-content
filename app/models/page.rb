@@ -21,7 +21,10 @@ class Page < ActiveRecord::Base
     content = Content.find_or_create_by(:id => self.id)
     content.update! :url => self.url
     r = content.grab
-    self.content_hash = Digest::SHA512.hexdigest(content.search_content) if r[0]
+    if r[0]
+      self.content_hash = Digest::SHA512.hexdigest(content.search_content)
+      self.title = content.title
+    end
     self.content_version = version if version and r[0]
     if (target = Page.find_success_by_content_hash(self.content_hash).first).present?
       self.target_page_id = target.id
