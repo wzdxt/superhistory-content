@@ -2,8 +2,8 @@ class Settings < Settingslogic
 	source "#{Rails.root}/config/application.yml"
 	namespace Rails.env
 
-  %w(http_triggers.yml).each do |file_name|
-		instance.deep_merge!(Settings.new(Rails.root.join('config', file_name)))
+  Dir[Rails.root.join('config/settings/*')].each do |file_path|
+    instance.deep_merge!(Settings.new(file_path))
   end
 
 end
