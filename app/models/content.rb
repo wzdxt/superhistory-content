@@ -25,15 +25,21 @@ class Content < ActiveRecord::Base
                                 .gsub(/(?<=\P{Word})\s+(?=\p{Word})/, '') # 删除文字前空格
                                 .gsub(/(?<=\p{Word})\s+(?=\P{Word})/, '') # 删除文字后空格
                                 .strip
-      self.save!
+      self
     rescue HTTPClient::ReceiveTimeoutError, HTTPClient::ConnectTimeoutError, HTTPClient::SendTimeoutError => e
+      puts self.url
       puts e.class, e.backtrace
       return [false, FETCH_ERROR::ERROR_ON_OPEN]
     rescue => e
+      puts self.url
       puts e.class, e.backtrace
       return [false, FETCH_ERROR::ERROR_OTHER]
     end
     return [true, Page::STATUS::SUCCESS]
+  end
+
+  def grab!
+    self.grab.save!
   end
 
   def self.remove_existed_local

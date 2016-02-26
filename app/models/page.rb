@@ -3,6 +3,7 @@ class Page < ActiveRecord::Base
   page = self.arel_table
   scope :under_version, ->(v) { where(page[:content_version].eq(nil).or(page[:content_version].lt(v))) }
   scope :not_redirect, -> { where page[:status].not_eq(STATUS::REDIRECT) }
+  scope :not_same_content_hash, -> { where page[:status].not_eq(STATUS::SAME_CONTENT_HASH) }
   scope :has_content_version, -> { where page[:content_version].not_eq(nil) }
   scope :version, -> (v) {where(page[:content_version].eq(v))}
   scope :content_hash, ->(content_hash) { where(page[:content_hash].eq(content_hash).and(page[:status].eq(STATUS::SUCCESS))) }
@@ -21,8 +22,8 @@ class Page < ActiveRecord::Base
   include StatusFeature
 
   def grab_content(version = nil)
-    content = Content.find_or_create_by(:id => self.id)
-    content.update! :url => self.url
+    content = Content.find_or_initialize_by(:id => self.id)
+    content.url = self.url
     r = content.grab
     self.content_hash = Digest::SHA512.hexdigest(content.search_content) if r[0]
     self.title = content.title
@@ -37,11 +38,11 @@ class Page < ActiveRecord::Base
       end
     end
     self.save!
-    content.delete unless self.SUCCESS?
+    self.status.nil? or self.SUCCESS? ? content.save! : content.delete
   end
 
   def self.grab_content(version)
-    self.under_version(version).not_redirect.each { |p| p.grab_content version }
+    self.under_version(version).not_redirect.not_same_content_hash.each { |p| p.grab_content version }
   end
 
   def self.clear_content_version
