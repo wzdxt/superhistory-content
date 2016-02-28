@@ -12,7 +12,7 @@ class Content < ActiveRecord::Base
   def grab
     begin
       client = HTTPClient.new
-      client.connect_timeout = client.send_timeout = client.receive_timeout = 3
+      client.connect_timeout = client.send_timeout = client.receive_timeout = Settings.http_wait_time
       res = client.get self.url
       readability_doc = Readability::Document.new(res.body)
       self.source = readability_doc.html.to_s.encode UTF8
@@ -39,7 +39,7 @@ class Content < ActiveRecord::Base
   end
 
   def clear_html_content
-    doc = Readability::Document.new(self.cache).html.css('body')
+    doc = Readability::Document.new(self.cache, :encoding => UTF8).html.css('body')
     doc.css('script').remove
     doc.css('style').remove
     doc.text
