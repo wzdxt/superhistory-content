@@ -1,6 +1,6 @@
 class Content < ActiveRecord::Base
   content = Content.arel_table
-  scope :contains_localhost, -> {where content[:url].matches('%://localhost/%').or content[:url].matches('%://localhost:%')}
+  scope :contains_localhost, -> { where content[:url].matches('%://localhost/%').or content[:url].matches('%://localhost:%') }
 
   module FETCH_ERROR
     PROCESSED = 20
@@ -19,13 +19,7 @@ class Content < ActiveRecord::Base
       self.title = readability_doc.title
       # self.cache = readability_doc.content.encode UTF8
       self.cache = self.source
-      self.search_content = Readability::Document.new(self.cache).html.text
-                                .gsub(/\s+/, ' ')
-                                .gsub(/[^\p{Word}|\p{P}|\p{S}|\s]+/, '') # 只保留中英文字,标点,符号和空格
-                                .gsub(/(?<=\P{Word})\s+(?=\p{Word})/, '') # 删除文字前空格
-                                .gsub(/(?<=\p{Word})\s+(?=\P{Word})/, '') # 删除文字后空格
-                                .strip
-      self
+      self.search_content = self.clear_html_content
     rescue HTTPClient::ReceiveTimeoutError, HTTPClient::ConnectTimeoutError, HTTPClient::SendTimeoutError => e
       puts self.url
       puts e.class, e.backtrace
@@ -39,7 +33,21 @@ class Content < ActiveRecord::Base
   end
 
   def grab!
-    self.grab.save!
+    ret = self.grab
+    self.save!
+    ret
+  end
+
+  def clear_html_content
+    doc = Readability::Document.new(self.cache).html
+    doc.css('body script').remove
+    doc.css('body style').remove
+    doc.text
+        .gsub(/\s+/, ' ')
+        .gsub(/[^\p{Word}|\p{P}|\p{S}|\s]+/, '') # 只保留中英文字,标点,符号和空格
+        .gsub(/(?<=\P{Word})\s+(?=\p{Word})/, '') # 删除文字前空格
+        .gsub(/(?<=\p{Word})\s+(?=\P{Word})/, '') # 删除文字后空格
+        .strip
   end
 
   def self.remove_existed_local
