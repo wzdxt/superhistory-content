@@ -2,10 +2,12 @@ default: &default
 
 development:
   <<: *default
+  http_wait_time: 3
 
 test:
   <<: *default
 
 production:
   <<: *default
+  http_wait_time: 10
 
