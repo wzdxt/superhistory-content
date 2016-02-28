@@ -39,9 +39,9 @@ class Content < ActiveRecord::Base
   end
 
   def clear_html_content
-    doc = Readability::Document.new(self.cache).html
-    doc.css('body script').remove
-    doc.css('body style').remove
+    doc = Readability::Document.new(self.cache).html.css('body')
+    doc.css('script').remove
+    doc.css('style').remove
     doc.text
         .gsub(/\s+/, ' ')
         .gsub(/[^\p{Word}|\p{P}|\p{S}|\s]+/, '') # 只保留中英文字,标点,符号和空格
