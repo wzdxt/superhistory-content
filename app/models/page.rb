@@ -5,10 +5,11 @@ class Page < ActiveRecord::Base
   scope :not_redirect, -> { where page[:status].not_eq(STATUS::REDIRECT) }
   scope :not_same_content_hash, -> { where page[:status].not_eq(STATUS::SAME_CONTENT_HASH) }
   scope :has_content_version, -> { where page[:content_version].not_eq(nil) }
-  scope :version, -> (v) {where(page[:content_version].eq(v))}
+  scope :version, -> (v) { where(page[:content_version].eq(v)) }
   scope :content_hash, ->(content_hash) { where(page[:content_hash].eq(content_hash).and(page[:status].eq(STATUS::SUCCESS))) }
-  scope :status_success, -> { where(page[:status].eq(STATUS::SUCCESS))}
-  scope :not_self, ->(self_id) {where(page[:id].not_eq(self_id))}
+  scope :status_success, -> { where(page[:status].eq(STATUS::SUCCESS)) }
+  scope :not_self, ->(self_id) { where(page[:id].not_eq(self_id)) }
+  scope :id_desc, -> { order(:id => :desc) }
   module STATUS
     NOT_PROCESSED = 10
     SUCCESS = Content::FETCH_ERROR::PROCESSED
@@ -42,7 +43,7 @@ class Page < ActiveRecord::Base
   end
 
   def self.grab_content(version)
-    self.under_version(version).not_redirect.not_same_content_hash.each { |p| p.grab_content version }
+    self.under_version(version).not_redirect.not_same_content_hash.id_desc.each { |p| p.grab_content version }
   end
 
   def self.clear_content_version
