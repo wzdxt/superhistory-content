@@ -2,34 +2,31 @@ class Content < ActiveRecord::Base
   content = Content.arel_table
   scope :contains_localhost, -> { where content[:url].matches('%://localhost/%').or content[:url].matches('%://localhost:%') }
 
-  module FETCH_ERROR
-    PROCESSED = 20
-    ERROR_ON_OPEN = 40
-    ERROR_OTHER = 50
-  end
   UTF8 = 'utf-8'
 
-  def grab
+  def grab(from_web = false)
     begin
-      client = HTTPClient.new
-      client.connect_timeout = client.send_timeout = client.receive_timeout = Settings.http_wait_time
-      res = client.get self.url
-      readability_doc = Readability::Document.new(res.body)
-      self.source = readability_doc.html.to_s.encode UTF8
-      self.title = readability_doc.title
-      # self.cache = readability_doc.content.encode UTF8
-      self.cache = self.source
+      if from_web || self.source.blank?
+        client = HTTPClient.new
+        client.connect_timeout = client.send_timeout = client.receive_timeout = Settings.http_wait_time
+        res = client.get self.url
+        return [false, Page::STATUS::HTTP_STATUS_NOT_200] unless res.status == 200
+        readability_doc = Readability::Document.new(res.body)
+        self.source = readability_doc.html.to_s.encode UTF8
+        self.title = readability_doc.title
+      end
+      self.cache, self.title, included = self.get_preview
       self.search_content = self.clear_html_content
     rescue HTTPClient::ReceiveTimeoutError, HTTPClient::ConnectTimeoutError, HTTPClient::SendTimeoutError => e
       puts self.url
       puts e.class, e.backtrace
-      return [false, FETCH_ERROR::ERROR_ON_OPEN]
+      return [false, Page::STATUS::ERROR_ON_OPEN]
     rescue => e
       puts self.url
       puts e.class, e.backtrace
-      return [false, FETCH_ERROR::ERROR_OTHER]
+      return [false, Page::STATUS::ERROR_OTHER]
     end
-    return [true, Page::STATUS::SUCCESS]
+    return included ? [true, Page::STATUS::SUCCESS] : [false, Page::STATUS::RULE_EXCLUDED]
   end
 
   def grab!
@@ -38,16 +35,11 @@ class Content < ActiveRecord::Base
     ret
   end
 
-  def clear_html_content
-    doc = Readability::Document.new(self.cache, :encoding => UTF8).html.css('body')
-    doc.css('script').remove
-    doc.css('style').remove
-    doc.text
-        .gsub(/\s+/, ' ')
-        .gsub(/[^\p{Word}|\p{P}|\p{S}|\s]+/, '') # 只保留中英文字,标点,符号和空格
-        .gsub(/(?<=\P{Word})\s+(?=\p{Word})/, '') # 删除文字前空格
-        .gsub(/(?<=\p{Word})\s+(?=\P{Word})/, '') # 删除文字后空格
-        .strip
+  def self.grab(page, from_web = false)
+    content = self.find_or_initialize_by(:id => page.id)
+    content.url = page.url
+    r = content.grab(from_web)
+    [content] + r
   end
 
   def self.remove_existed_local
@@ -57,4 +49,60 @@ class Content < ActiveRecord::Base
   def self.reset_table
     self.delete_all
   end
+
+  # return cache, title
+  def get_preview
+    rule = self.get_rule
+    if rule.nil?
+      return self.source, self.title, true
+    elsif rule.excluded
+      return nil, nil, false
+    else
+      doc = nokogiri_parse self.source
+      title = doc.css(rule.title_css_path.downcase).text.strip
+      h1 = Nokogiri::XML::Node.new 'h1', doc
+      h1.add_child title
+      ps = doc.css(rule.combined_content_css_path.downcase).map do |content_doc|
+        p = Nokogiri::XML::Node.new 'p', content_doc
+        p.add_child content_doc
+        p
+      end
+      content = Nokogiri::HTML.parse(h1.to_s + ps.map{|p|p.to_s}.join).to_s
+      return content, title, true
+    end
+  end
+
+  # return rule
+  def get_rule
+    uri = URI.parse self.url
+    host, port, path = uri.host, uri.port, uri.path
+    rule, include = HostRule.get_rule_by_host_port_path(host, port, path)
+    if rule.nil?
+      self.host_rule_id = self.path_rule_id = self.rule_excluded = nil
+    else
+      if rule.is_a? HostRule
+        self.host_rule_id, self.path_rule_id = rule.id, nil
+      elsif rule.is_a? PathRule
+        self.host_rule_id, self.path_rule_id = rule.host_rule_id, rule.id
+      end
+      self.rule_excluded = !include
+    end
+    rule
+  end
+
+  def clear_html_content
+    return nil if self.cache.nil?
+    doc = Readability::Document.new(self.cache, :encoding => UTF8).html.css('body')
+    doc.css('script, style, link').remove
+    doc.text
+        .gsub(/\s+/, ' ')
+        .gsub(/[^\p{Word}|\p{P}|\p{S}|\s]+/, '') # 只保留中英文字,标点,符号和空格
+        .gsub(/(?<=\P{Word})\s+(?=\p{Word})/, '') # 删除文字前空格
+        .gsub(/(?<=\p{Word})\s+(?=\P{Word})/, '') # 删除文字后空格
+        .strip
+  end
 end
+
+
+
+

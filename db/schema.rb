@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20160215165417) do
+ActiveRecord::Schema.define(version: 20160307030226) do
 
   create_table "contents", force: :cascade do |t|
     t.text     "source",         limit: 16777215
@@ -19,8 +19,11 @@ ActiveRecord::Schema.define(version: 20160215165417) do
     t.string   "title"
     t.text     "cache"
     t.text     "search_content"
-    t.datetime "created_at",                      null: false
-    t.datetime "updated_at",                      null: false
+    t.datetime "created_at",                                      null: false
+    t.datetime "updated_at",                                      null: false
+    t.integer  "host_rule_id"
+    t.integer  "path_rule_id"
+    t.boolean  "rule_excluded",                   default: false
   end
 
   create_table "locks", force: :cascade do |t|
