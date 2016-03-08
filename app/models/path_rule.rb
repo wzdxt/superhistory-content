@@ -13,7 +13,13 @@ class PathRule < ActiveRecord::Base
   end
 
   def combined_content_css_path
-    self.content_css_paths_data.join(',')
+    paths = self.content_css_paths_data
+    paths.each do |path|
+      if path.downcase =~ />tbody:nth-child\(\d+\)/
+        paths += [path.downcase.gsub(/>tbody:nth-child\(\d+\)/, '')]
+      end
+    end
+    paths.join(',')
   end
 
   def combined_css_path

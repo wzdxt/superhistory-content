@@ -35,7 +35,7 @@ gem 'rails', '4.2.1'
 gem 'httpclient'
 gem 'settingslogic'
 gem 'ruby-readability'
-gem 'mysql2'
+gem 'mysql2', '~>0.3.0'
 
 group :production do
   # Use postgresql as the database for Active Record
