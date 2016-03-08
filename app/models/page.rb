@@ -49,6 +49,10 @@ class Page < ActiveRecord::Base
   end
 
   def self.grab_content(version)
+    # refetch randomly 10 pages in latest version
+    count = self.version(version).count
+    self.version(version).offset(rand(count - 9)).limit(1 + 9).each { |p| p.grab_content version, true }
+    # version up for old version
     self.under_version(version).not_redirect.not_same_content_hash.id_desc.each { |p| p.grab_content version }
   end
 
