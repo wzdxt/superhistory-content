@@ -54,7 +54,7 @@ class Content < ActiveRecord::Base
   def get_preview
     rule = self.get_rule
     if rule.nil?
-      return self.source, self.title, true
+      return Content.clear_cache(self.url, self.source), self.title, true
     elsif rule.excluded
       return nil, nil, false
     else
@@ -67,8 +67,8 @@ class Content < ActiveRecord::Base
         p.add_child content_doc
         p
       end
-      content = Nokogiri::HTML.parse(h1.to_s + ps.map{|p|p.to_s}.join).to_s
-      return Content.clear_cache(content), title, true
+      content = Nokogiri::HTML.parse(h1.to_s + ps.map { |p| p.to_s }.join).to_s
+      return Content.clear_cache(self.url, content), title, true
     end
   end
 
@@ -102,9 +102,14 @@ class Content < ActiveRecord::Base
         .strip
   end
 
-  def self.clear_cache(content)
+  def self.clear_cache(url, content)
+    uri = URI.parse url
     doc = Nokogiri::HTML.parse content
     doc.css('script, iframe, frameset, html>head, style, link').remove
+    doc.css('img').each do |img|
+      next if img['src'].start_with?('http://') or img['src'].start_with?('https://') or img['src'].start_with?('//')
+      img['src'] = "#{uri.scheme}://#{uri.host}#{img['src']}"
+    end
     doc.to_s
   end
 end
