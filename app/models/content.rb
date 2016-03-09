@@ -68,7 +68,7 @@ class Content < ActiveRecord::Base
         p
       end
       content = Nokogiri::HTML.parse(h1.to_s + ps.map{|p|p.to_s}.join).to_s
-      return content, title, true
+      return Content.clear_cache(content), title, true
     end
   end
 
@@ -100,6 +100,12 @@ class Content < ActiveRecord::Base
         .gsub(/(?<=\P{Word})\s+(?=\p{Word})/, '') # 删除文字前空格
         .gsub(/(?<=\p{Word})\s+(?=\P{Word})/, '') # 删除文字后空格
         .strip
+  end
+
+  def self.clear_cache(content)
+    doc = Nokogiri::HTML.parse content
+    doc.css('script, iframe, frameset, html>head, style, link').remove
+    doc.to_s
   end
 end
 
