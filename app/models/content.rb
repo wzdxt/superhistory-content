@@ -9,7 +9,7 @@ class Content < ActiveRecord::Base
       if from_web || self.source.blank?
         client = HTTPClient.new
         client.connect_timeout = client.send_timeout = client.receive_timeout = Settings.http_wait_time
-        res = client.get self.url
+        res = client.get self.url, :header => {'User-Agent' => 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36'}
         return [false, Page::STATUS::HTTP_STATUS_NOT_200] unless res.status == 200
         readability_doc = Readability::Document.new(res.body)
         self.source = readability_doc.html.to_s.encode UTF8
@@ -19,11 +19,11 @@ class Content < ActiveRecord::Base
       self.search_content = self.clear_html_content
     rescue HTTPClient::ReceiveTimeoutError, HTTPClient::ConnectTimeoutError, HTTPClient::SendTimeoutError => e
       puts self.url
-      puts e.class, e.backtrace
+      puts e.class, e.message, e.backtrace
       return [false, Page::STATUS::ERROR_ON_OPEN]
     rescue => e
       puts self.url
-      puts e.class, e.backtrace
+      puts e.class, e.message, e.backtrace
       return [false, Page::STATUS::ERROR_OTHER]
     end
     return included ? [true, Page::STATUS::SUCCESS] : [false, Page::STATUS::RULE_EXCLUDED]
@@ -109,6 +109,14 @@ class Content < ActiveRecord::Base
     doc.css('img').each do |img|
       next if img['src'].start_with?('http://') or img['src'].start_with?('https://') or img['src'].start_with?('//')
       img['src'] = "#{uri.scheme}://#{uri.host}#{img['src']}"
+    end
+    doc.css('a').each do |a|
+      next if a['href'].nil? or a['href'].start_with?('http://') or a['href'].start_with?('https://') or a['href'].start_with?('//')
+      if a['href'].start_with?('javascript')
+        a['href'] = nil
+      else
+        a['href']= "#{uri.scheme}://#{uri.host}#{a['href']}"
+      end
     end
     doc.to_s
   end
