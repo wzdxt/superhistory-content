@@ -9,7 +9,7 @@ class Content < ActiveRecord::Base
       if from_web || self.source.blank?
         client = HTTPClient.new
         client.connect_timeout = client.send_timeout = client.receive_timeout = Settings.http_wait_time
-        res = client.get self.url, :header => Content.build_header(self.url)
+        res = client.get self.url, :header => self.build_request_header
         return [false, Page::STATUS::HTTP_STATUS_NOT_200] unless res.status == 200
         readability_doc = Readability::Document.new(res.body)
         self.source = readability_doc.html.to_s.encode UTF8
@@ -102,6 +102,18 @@ class Content < ActiveRecord::Base
         .strip
   end
 
+  def build_request_header
+    uri = URI.parse self.url
+    root_addr = "#{uri.scheme}://#{uri.host}/"
+    {'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+     'Accept-Language' => 'zh-CN,zh;q=0.8,en-US;q=0.6,en;q=0.4,ja;q=0.2,zh-TW;q=0.2',
+     'Cache-Control' => 'no-cache',
+     'Pragma' => 'no-cache',
+     'Referer' => root_addr,
+     'Upgrade-Insecure-Requests' => '1',
+     'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.73 Safari/537.36'}
+  end
+
   def self.clear_cache(url, content)
     uri = URI.parse url
     doc = Nokogiri::HTML.parse content
@@ -119,18 +131,6 @@ class Content < ActiveRecord::Base
       end
     end
     doc.to_s
-  end
-
-  def self.build_header(url)
-    uri = URI.parse url
-    root_addr = "#{uri.scheme}://#{uri.host}/"
-    {'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-     'Accept-Language' => 'zh-CN,zh;q=0.8,en-US;q=0.6,en;q=0.4,ja;q=0.2,zh-TW;q=0.2',
-     'Cache-Control' => 'no-cache',
-     'Pragma' => 'no-cache',
-     'Referer' => root_addr,
-     'Upgrade-Insecure-Requests' => '1',
-     'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.73 Safari/537.36'}
   end
 end
 
