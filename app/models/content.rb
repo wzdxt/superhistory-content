@@ -11,7 +11,11 @@ class Content < ActiveRecord::Base
         client.connect_timeout = client.send_timeout = client.receive_timeout = Settings.http_wait_time
         res = client.get self.url, :header => self.build_request_header
         return [false, Page::STATUS::HTTP_STATUS_NOT_200] unless res.status == 200
-        readability_doc = Readability::Document.new(res.body)
+        if (encoding = GuessHtmlEncoding::HTMLScanner.new(res.body).encoding).nil?
+          readability_doc = Readability::Document.new(res.body)
+        else
+          readability_doc = Readability::Document.new(res.body, :encoding => encoding.upcase)
+        end
         self.source = readability_doc.html.to_s.encode UTF8
         self.title = readability_doc.title
       end
